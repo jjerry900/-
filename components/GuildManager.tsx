@@ -111,7 +111,7 @@ function Dashboard({ data }: { data: AppData }) {
     </div>
     <div className="grid-2">
       <div className="panel"><div className="panel-title"><span>⚔️ 최근 보스 기록</span><span className="muted">총 {data.records.length}건</span></div>
-        {data.records.length ? <div className="table-wrap"><table><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>참여</th></tr></thead><tbody>{data.records.slice(0, 7).map(r => <tr key={r.id}><td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.participants.length}명</td></tr>)}</tbody></table></div> : <Empty text="등록된 보스 기록이 없습니다." />}
+        {data.records.length ? <div className="table-wrap"><table className="dashboard-table"><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>참여</th></tr></thead><tbody>{data.records.slice(0, 7).map(r => <tr key={r.id}><td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.participants.length}명</td></tr>)}</tbody></table></div> : <Empty text="등록된 보스 기록이 없습니다." />}
       </div>
       <div className="panel"><div className="panel-title"><span>📊 전체 참여 현황</span><b>{total}회</b></div><TopMembers data={data} /></div>
     </div>
@@ -304,7 +304,7 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     </div>
 
     <div className="panel table-panel">
-      <div className="table-wrap"><table><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
+      <div className="table-wrap"><table className="boss-table"><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
         <tbody>{data.records.map(r => <tr key={r.id}>
           <td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td>
           <td><div className="actions"><button title="수정" onClick={() => startEdit(r)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(r.id)}><Trash2 size={15} /></button></div></td>
@@ -332,7 +332,7 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
 function Stats({ data }: { data: AppData }) {
   const total = data.records.length;
   const rows = data.members.map(m => ({ name: m.name, count: data.records.filter(r => r.participants.includes(m.name)).length })).sort((a, b) => b.count - a.count);
-  return <div className="stack"><PageIntro title="📅 참여율 기록" desc="길드원별 보스 참여 현황을 확인합니다." /><div className="cards"><StatCard icon={<CalendarDays />} label="전체 보스 기록" value={`${total}건`} /><StatCard icon={<Users />} label="전체 참여 횟수" value={`${data.records.reduce((a, r) => a + r.participants.length, 0)}회`} /></div><div className="panel"><div className="panel-title"><span>길드원별 참여 현황</span></div><div className="table-wrap"><table><thead><tr><th>길드원</th><th>참여 횟수</th><th>참여율</th></tr></thead><tbody>{rows.map(r => <tr key={r.name}><td className="strong">{r.name}</td><td>{r.count}회</td><td><div className="mini-rate"><span>{total ? Math.round(r.count / total * 100) : 0}%</span><i style={{ width: `${total ? Math.min(100, r.count / total * 100) : 0}%` }} /></div></td></tr>)}</tbody></table></div>{!rows.length && <Empty text="길드원을 등록하면 참여율이 표시됩니다." />}</div></div>;
+  return <div className="stack"><PageIntro title="📅 참여율 기록" desc="길드원별 보스 참여 현황을 확인합니다." /><div className="cards"><StatCard icon={<CalendarDays />} label="전체 보스 기록" value={`${total}건`} /><StatCard icon={<Users />} label="전체 참여 횟수" value={`${data.records.reduce((a, r) => a + r.participants.length, 0)}회`} /></div><div className="panel"><div className="panel-title"><span>길드원별 참여 현황</span></div><div className="table-wrap"><table className="stats-table"><thead><tr><th>길드원</th><th>참여 횟수</th><th>참여율</th></tr></thead><tbody>{rows.map(r => <tr key={r.name}><td className="strong">{r.name}</td><td>{r.count}회</td><td><div className="mini-rate"><span>{total ? Math.round(r.count / total * 100) : 0}%</span><i style={{ width: `${total ? Math.min(100, r.count / total * 100) : 0}%` }} /></div></td></tr>)}</tbody></table></div>{!rows.length && <Empty text="길드원을 등록하면 참여율이 표시됩니다." />}</div></div>;
 }
 
 function Ladder({ members }: { members: Member[] }) {

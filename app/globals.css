@@ -66,3 +66,71 @@
 
 /* Boss record edit */
 .boss-edit-modal{width:min(760px,calc(100vw - 30px))}.boss-edit-grid select{width:100%;height:44px;border:1px solid #dddde7;border-radius:9px;padding:0 12px;outline:0;background:#fff}.boss-edit-grid select:focus{border-color:#8774df}.boss-edit-participants>span{display:block;font-size:11px;color:#777;margin:18px 0 6px}.boss-edit-participants .member-picker{margin:8px 0 0;max-height:180px;overflow:auto;padding:2px}
+
+
+/* Mobile layout stabilization */
+@media(max-width:900px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .app,.main{width:100%;max-width:100%;min-width:0}
+  .content{width:100%;max-width:100%;overflow-x:hidden}
+  .stack{min-width:0}
+  .grid-2{min-width:0}
+  .panel{min-width:0;max-width:100%;overflow:hidden}
+  .page-head{min-width:0}
+  .page-head>div{min-width:0}
+  .page-head p{max-width:100%;overflow-wrap:anywhere}
+  .member-picker{max-width:100%}
+  .member-picker button{max-width:100%;}
+  .topbar{width:100%;min-width:0}
+}
+@media(max-width:560px){
+  .grid-2{grid-template-columns:1fr;gap:12px}
+  .cards{grid-template-columns:1fr 1fr;width:100%}
+  .stat-card{min-width:0;overflow:hidden}
+  .stat-card>div:last-child{min-width:0}
+  .stat-card strong,.stat-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .panel{border-radius:12px;padding:14px}
+  .panel-title{min-width:0;gap:8px}
+  .panel-title>span{min-width:0;overflow-wrap:anywhere}
+  .table-wrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Dashboard recent records: compact mobile cards */
+  .dashboard-table{min-width:0;width:100%;border-collapse:separate;border-spacing:0}
+  .dashboard-table thead{display:none}
+  .dashboard-table tbody,.dashboard-table tr,.dashboard-table td{display:block;width:100%;white-space:normal}
+  .dashboard-table tbody tr{background:#fafafd;border:1px solid #eeeef3;border-radius:10px;margin-bottom:8px;padding:8px 10px}
+  .dashboard-table tbody tr:last-child{margin-bottom:0}
+  .dashboard-table td{border:0;padding:3px 0;font-size:12px}
+  .dashboard-table td:nth-child(1),.dashboard-table td:nth-child(2),.dashboard-table td:nth-child(4){display:inline-block;width:auto;margin-right:10px;color:#888}
+  .dashboard-table td:nth-child(3){font-size:14px;padding-top:4px}
+  /* Participation stats: no forced 650px width */
+  .stats-table{min-width:0;width:100%}
+  .stats-table thead{display:none}
+  .stats-table tbody,.stats-table tr,.stats-table td{display:block;width:100%;white-space:normal}
+  .stats-table tbody tr{padding:10px 0;border-bottom:1px solid #eeeef3}
+  .stats-table tbody tr:last-child{border-bottom:0}
+  .stats-table td{border:0;padding:3px 0}
+  .stats-table td:nth-child(1){font-weight:700;font-size:13px}
+  .stats-table td:nth-child(2){color:#777;font-size:12px}
+  .stats-table td:nth-child(3){padding-top:6px}
+  .stats-table .mini-rate{width:100%;max-width:100%}
+  .stats-table .mini-rate span{width:40px;flex:0 0 40px}
+  .stats-table .mini-rate i{flex:1;width:auto;max-width:none}
+  /* Boss records: compact cards on mobile */
+  .boss-table{min-width:0;width:100%;border-collapse:separate;border-spacing:0}
+  .boss-table thead{display:none}
+  .boss-table tbody,.boss-table tr,.boss-table td{display:block;width:100%;white-space:normal}
+  .boss-table tbody tr{background:#fafafd;border:1px solid #eeeef3;border-radius:10px;margin-bottom:9px;padding:10px}
+  .boss-table tbody tr:last-child{margin-bottom:0}
+  .boss-table td{border:0;padding:3px 0;font-size:12px;overflow-wrap:anywhere}
+  .boss-table td:nth-child(1),.boss-table td:nth-child(2),.boss-table td:nth-child(4){display:inline-block;width:auto;margin-right:9px;color:#888}
+  .boss-table td:nth-child(3){font-size:14px;font-weight:700;padding-top:5px}
+  .boss-table td:nth-child(5){font-size:12px;color:#666;line-height:1.5;padding-right:4px}
+  .boss-table td:nth-child(6){padding-top:7px}
+  .boss-table .actions{display:flex;width:100%;gap:7px}
+  .boss-table .actions button{padding:8px 10px}
+  .boss-form{width:100%}
+  .boss-form input,.boss-form select{width:100%;min-width:0}
+  .form-actions,.modal-actions{flex-wrap:wrap}
+  .member-picker{gap:6px}
+  .member-picker button{padding:7px 9px}
+}
