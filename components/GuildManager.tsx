@@ -173,14 +173,34 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 
   return <div className="stack">
     <PageIntro title="👥 길드원 목록" desc="길드원 정보를 한눈에 확인하고 검색할 수 있습니다." />
+
+    {/* 등록 영역을 목록보다 위로 이동 */}
+    {!editing && <div className="panel add-member-panel">
+      <div className="panel-title"><span>➕ 길드원 등록</span><Lock size={16} /></div>
+      <div className="form-grid member-add-grid">
+        <input placeholder="닉네임" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        <input placeholder="직업" value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} />
+        <input type="number" placeholder="공격력" value={form.power} onChange={e => setForm({ ...form, power: e.target.value })} />
+        <input type="number" placeholder="방어력" value={form.defense} onChange={e => setForm({ ...form, defense: e.target.value })} />
+        <input type="number" placeholder="명중" value={form.accuracy} onChange={e => setForm({ ...form, accuracy: e.target.value })} />
+        <button className="primary" disabled={saving} onClick={save}><Plus size={16} /> {saving ? "등록 중..." : "등록"}</button>
+      </div>
+    </div>}
+
     <div className="members-toolbar">
       <div className="search member-search"><Search size={17} /><input placeholder="닉네임 또는 직업 검색" value={q} onChange={e => setQ(e.target.value)} /></div>
       <span className="muted">검색 결과 {list.length}명 / 전체 {data.members.length}명</span>
-      <button className="primary" onClick={() => { reset(); window.scrollTo({ top: 0, behavior: "smooth" }); }}><Plus size={16} /> 길드원 추가</button>
     </div>
+
     <div className="member-grid">
       {list.map(m => <div className="member-card" key={m.id}>
-        <div className="member-card-head"><div><strong>{m.name}</strong><span>{m.job || "직업 미등록"}</span></div><div className="actions"><button title="수정" onClick={() => startEdit(m)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(m.id)}><Trash2 size={15} /></button></div></div>
+        <div className="member-card-head">
+          <div><strong>{m.name}</strong><span>{m.job || "직업 미등록"}</span></div>
+          <div className="actions">
+            <button title="수정" onClick={() => startEdit(m)}><Pencil size={15} /></button>
+            <button title="삭제" className="danger" onClick={() => del(m.id)}><Trash2 size={15} /></button>
+          </div>
+        </div>
         <div className="member-stats">
           <div><span>공격력</span><b>{m.power.toLocaleString()}</b></div>
           <div><span>방어력</span><b>{m.defense.toLocaleString()}</b></div>
@@ -203,51 +223,109 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
         <div className="modal-actions"><button className="secondary" onClick={reset}>취소</button><button className="primary" disabled={saving} onClick={save}>{saving ? "저장 중..." : "수정 저장"}</button></div>
       </div>
     </div>}
-
-    {!editing && <div className="panel add-member-panel"><div className="panel-title"><span>➕ 길드원 등록</span><Lock size={16} /></div><div className="form-grid member-add-grid">
-      <input placeholder="닉네임" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-      <input placeholder="직업" value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} />
-      <input type="number" placeholder="공격력" value={form.power} onChange={e => setForm({ ...form, power: e.target.value })} />
-      <input type="number" placeholder="방어력" value={form.defense} onChange={e => setForm({ ...form, defense: e.target.value })} />
-      <input type="number" placeholder="명중" value={form.accuracy} onChange={e => setForm({ ...form, accuracy: e.target.value })} />
-      <button className="primary" disabled={saving} onClick={save}><Plus size={16} /> {saving ? "등록 중..." : "등록"}</button>
-    </div></div>}
   </div>;
 }
+
 function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
   const [week, setWeek] = useState("1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [boss, setBoss] = useState("");
   const [score, setScore] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [editing, setEditing] = useState<BossRecord | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const resetEdit = () => {
+    setEditing(null);
+    setWeek("1");
+    setDate(new Date().toISOString().slice(0, 10));
+    setBoss("");
+    setScore("");
+    setSelected([]);
+  };
 
   const add = async () => {
     if (!boss.trim()) return window.alert("보스명을 입력해주세요.");
     if (!requireAdmin()) return;
+    setSaving(true);
     const { data: record, error } = await supabase.from("boss_records").insert({ week: Number(week), date, boss: boss.trim(), score: Number(score) || 0, participants: selected }).select().single();
+    setSaving(false);
     if (error) return window.alert(error.message);
     setData(d => ({ ...d, records: [record as BossRecord, ...d.records] }));
     setBoss(""); setScore(""); setSelected([]);
+  };
+
+  const startEdit = (r: BossRecord) => {
+    if (!requireAdmin()) return;
+    setEditing(r);
+    setWeek(String(r.week));
+    setDate(r.date);
+    setBoss(r.boss);
+    setScore(String(r.score));
+    setSelected(r.participants || []);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!boss.trim()) return window.alert("보스명을 입력해주세요.");
+    setSaving(true);
+    const { data: record, error } = await supabase.from("boss_records")
+      .update({ week: Number(week), date, boss: boss.trim(), score: Number(score) || 0, participants: selected })
+      .eq("id", editing.id)
+      .select().single();
+    setSaving(false);
+    if (error) return window.alert(`수정 실패: ${error.message}`);
+    setData(d => ({ ...d, records: d.records.map(r => r.id === editing.id ? record as BossRecord : r) }));
+    resetEdit();
   };
 
   const del = async (id: string) => {
     if (!requireAdmin()) return;
     if (!window.confirm("이 기록을 삭제할까요?")) return;
     const { error } = await supabase.from("boss_records").delete().eq("id", id);
-    if (error) return window.alert(error.message);
+    if (error) return window.alert(`삭제 실패: ${error.message}`);
     setData(d => ({ ...d, records: d.records.filter(r => r.id !== id) }));
   };
 
   const toggle = (name: string) => setSelected(s => s.includes(name) ? s.filter(x => x !== name) : [...s, name]);
 
   return <div className="stack">
-    <PageIntro title="⚔️ 보스 참여 기록" desc="보스 기록 등록과 삭제는 관리자 비밀번호가 필요합니다." />
-    <div className="panel"><div className="panel-title"><span>➕ 참여 기록 추가</span><Lock size={16} /></div>
-      <div className="form-grid boss-form"><select value={week} onChange={e => setWeek(e.target.value)}>{[1, 2, 3, 4, 5].map(x => <option key={x} value={x}>{x}주차</option>)}</select><input type="date" value={date} onChange={e => setDate(e.target.value)} /><input placeholder="보스 이름" value={boss} onChange={e => setBoss(e.target.value)} /><input type="number" placeholder="보스 점수" value={score} onChange={e => setScore(e.target.value)} /></div>
+    <PageIntro title="⚔️ 보스 참여 기록" desc="보스 기록 등록·수정·삭제는 관리자 비밀번호가 필요합니다." />
+    <div className="panel">
+      <div className="panel-title"><span>➕ 참여 기록 추가</span><Lock size={16} /></div>
+      <div className="form-grid boss-form">
+        <select value={week} onChange={e => setWeek(e.target.value)}>{[1, 2, 3, 4, 5].map(x => <option key={x} value={x}>{x}주차</option>)}</select>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        <input placeholder="보스 이름" value={boss} onChange={e => setBoss(e.target.value)} />
+        <input type="number" placeholder="보스 점수" value={score} onChange={e => setScore(e.target.value)} />
+      </div>
       <div className="member-picker">{data.members.map(m => <button key={m.id} className={selected.includes(m.name) ? "selected" : ""} onClick={() => toggle(m.name)}>{m.name}</button>)}</div>
-      <button className="primary" onClick={add}><Plus size={16} /> 참여 기록 저장 ({selected.length}명)</button>
+      <button className="primary" disabled={saving} onClick={add}><Plus size={16} /> {saving ? "저장 중..." : `참여 기록 저장 (${selected.length}명)`}</button>
     </div>
-    <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th /></tr></thead><tbody>{data.records.map(r => <tr key={r.id}><td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td><td><button className="danger-text" onClick={() => del(r.id)}>삭제</button></td></tr>)}</tbody></table></div>{!data.records.length && <Empty text="등록된 기록이 없습니다." />}</div>
+
+    <div className="panel table-panel">
+      <div className="table-wrap"><table><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
+        <tbody>{data.records.map(r => <tr key={r.id}>
+          <td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td>
+          <td><div className="actions"><button title="수정" onClick={() => startEdit(r)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(r.id)}><Trash2 size={15} /></button></div></td>
+        </tr>)}</tbody>
+      </table></div>
+      {!data.records.length && <Empty text="등록된 기록이 없습니다." />}
+    </div>
+
+    {editing && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) resetEdit(); }}>
+      <div className="member-edit-modal boss-edit-modal">
+        <div className="modal-head"><div><div className="eyebrow">RAVEN2 BOSS RECORD</div><h3>✏️ 보스 참여 기록 수정</h3></div><button className="icon-btn" onClick={resetEdit}><X size={20} /></button></div>
+        <div className="edit-grid boss-edit-grid">
+          <label>주차<select value={week} onChange={e => setWeek(e.target.value)}>{[1, 2, 3, 4, 5].map(x => <option key={x} value={x}>{x}주차</option>)}</select></label>
+          <label>날짜<input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
+          <label>보스 이름<input value={boss} onChange={e => setBoss(e.target.value)} /></label>
+          <label>보스 점수<input type="number" value={score} onChange={e => setScore(e.target.value)} /></label>
+        </div>
+        <div className="boss-edit-participants"><span>참여자</span><div className="member-picker">{data.members.map(m => <button key={m.id} className={selected.includes(m.name) ? "selected" : ""} onClick={() => toggle(m.name)}>{m.name}</button>)}</div></div>
+        <div className="modal-actions"><button className="secondary" onClick={resetEdit}>취소</button><button className="primary" disabled={saving} onClick={saveEdit}>{saving ? "저장 중..." : "수정 저장"}</button></div>
+      </div>
+    </div>}
   </div>;
 }
 
