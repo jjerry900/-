@@ -111,7 +111,7 @@ function Dashboard({ data }: { data: AppData }) {
     </div>
     <div className="grid-2">
       <div className="panel"><div className="panel-title"><span>⚔️ 최근 보스 기록</span><span className="muted">총 {data.records.length}건</span></div>
-        {data.records.length ? <div className="table-wrap"><table className="dashboard-table"><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>참여</th></tr></thead><tbody>{data.records.slice(0, 7).map(r => <tr key={r.id}><td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.participants.length}명</td></tr>)}</tbody></table></div> : <Empty text="등록된 보스 기록이 없습니다." />}
+        {data.records.length ? <div className="table-wrap"><table className="dashboard-table"><thead><tr><th>날짜</th><th>보스</th><th>참여</th></tr></thead><tbody>{data.records.slice(0, 7).map(r => <tr key={r.id}><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.participants.length}명</td></tr>)}</tbody></table></div> : <Empty text="등록된 보스 기록이 없습니다." />}
       </div>
       <div className="panel"><div className="panel-title"><span>📊 전체 참여 현황</span><b>{total}회</b></div><TopMembers data={data} /></div>
     </div>
@@ -146,7 +146,6 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 
   const save = async () => {
     if (!form.name.trim()) return window.alert("닉네임을 입력해주세요.");
-    if (!editing && !requireAdmin()) return;
     setSaving(true);
     const row = { name: form.name.trim(), job: form.job.trim(), power: Number(form.power) || 0, defense: Number(form.defense) || 0, accuracy: Number(form.accuracy) || 0 };
     const result = editing
@@ -199,7 +198,7 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 
     {/* 등록 영역을 목록보다 위로 이동 */}
     {!editing && <div className="panel add-member-panel">
-      <div className="panel-title"><span>➕ 길드원 등록</span><Lock size={16} /></div>
+      <div className="panel-title"><span>➕ 길드원 등록</span></div>
       <div className="form-grid member-add-grid">
         <input placeholder="닉네임" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <input placeholder="직업" value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} />
@@ -250,7 +249,6 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 }
 
 function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
-  const [week, setWeek] = useState("1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [boss, setBoss] = useState("");
   const [score, setScore] = useState("");
@@ -260,7 +258,6 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
 
   const resetEdit = () => {
     setEditing(null);
-    setWeek("1");
     setDate(new Date().toISOString().slice(0, 10));
     setBoss("");
     setScore("");
@@ -271,7 +268,7 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     if (!boss.trim()) return window.alert("보스명을 입력해주세요.");
     if (!requireAdmin()) return;
     setSaving(true);
-    const { data: record, error } = await supabase.from("boss_records").insert({ week: Number(week), date, boss: boss.trim(), score: Number(score) || 0, participants: selected }).select().single();
+    const { data: record, error } = await supabase.from("boss_records").insert({ date, boss: boss.trim(), score: Number(score) || 0, participants: selected }).select().single();
     setSaving(false);
     if (error) return window.alert(error.message);
     setData(d => ({ ...d, records: [record as BossRecord, ...d.records] }));
@@ -281,7 +278,6 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
   const startEdit = (r: BossRecord) => {
     if (!requireAdmin()) return;
     setEditing(r);
-    setWeek(String(r.week));
     setDate(r.date);
     setBoss(r.boss);
     setScore(String(r.score));
@@ -293,7 +289,7 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     if (!boss.trim()) return window.alert("보스명을 입력해주세요.");
     setSaving(true);
     const { data: record, error } = await supabase.from("boss_records")
-      .update({ week: Number(week), date, boss: boss.trim(), score: Number(score) || 0, participants: selected })
+      .update({ date, boss: boss.trim(), score: Number(score) || 0, participants: selected })
       .eq("id", editing.id)
       .select().single();
     setSaving(false);
@@ -310,14 +306,22 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     setData(d => ({ ...d, records: d.records.filter(r => r.id !== id) }));
   };
 
+  const resetAll = async () => {
+    if (!requireAdmin()) return;
+    if (!window.confirm("모든 보스 참여 기록을 정말 초기화할까요?\n\n삭제한 기록은 복구할 수 없습니다.")) return;
+    const { error } = await supabase.from("boss_records").delete().not("id", "is", null);
+    if (error) return window.alert(`전체 초기화 실패: ${error.message}`);
+    setData(d => ({ ...d, records: [] }));
+    resetEdit();
+  };
+
   const toggle = (name: string) => setSelected(s => s.includes(name) ? s.filter(x => x !== name) : [...s, name]);
 
   return <div className="stack">
-    <PageIntro title="⚔️ 보스 참여 기록" desc="보스 기록 등록·수정·삭제는 관리자 비밀번호가 필요합니다." />
+    <PageIntro title="⚔️ 보스 참여 기록" desc="보스 참여 기록을 관리합니다." />
     <div className="panel">
-      <div className="panel-title"><span>➕ 참여 기록 추가</span><Lock size={16} /></div>
+      <div className="panel-title"><span>➕ 참여 기록 추가</span><div className="panel-actions"><Lock size={16} /><button className="danger-outline small" onClick={resetAll}>전체 초기화</button></div></div>
       <div className="form-grid boss-form">
-        <select value={week} onChange={e => setWeek(e.target.value)}>{[1, 2, 3, 4, 5].map(x => <option key={x} value={x}>{x}주차</option>)}</select>
         <input type="date" value={date} onChange={e => setDate(e.target.value)} />
         <input placeholder="보스 이름" value={boss} onChange={e => setBoss(e.target.value)} />
         <input type="number" placeholder="보스 점수" value={score} onChange={e => setScore(e.target.value)} />
@@ -327,9 +331,9 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     </div>
 
     <div className="panel table-panel">
-      <div className="table-wrap"><table className="boss-table"><thead><tr><th>주차</th><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
+      <div className="table-wrap"><table className="boss-table"><thead><tr><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
         <tbody>{data.records.map(r => <tr key={r.id}>
-          <td>{r.week}주차</td><td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td>
+          <td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td>
           <td><div className="actions"><button title="수정" onClick={() => startEdit(r)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(r.id)}><Trash2 size={15} /></button></div></td>
         </tr>)}</tbody>
       </table></div>
@@ -340,7 +344,6 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
       <div className="member-edit-modal boss-edit-modal">
         <div className="modal-head"><div><div className="eyebrow">RAVEN2 BOSS RECORD</div><h3>✏️ 보스 참여 기록 수정</h3></div><button className="icon-btn" onClick={resetEdit}><X size={20} /></button></div>
         <div className="edit-grid boss-edit-grid">
-          <label>주차<select value={week} onChange={e => setWeek(e.target.value)}>{[1, 2, 3, 4, 5].map(x => <option key={x} value={x}>{x}주차</option>)}</select></label>
           <label>날짜<input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
           <label>보스 이름<input value={boss} onChange={e => setBoss(e.target.value)} /></label>
           <label>보스 점수<input type="number" value={score} onChange={e => setScore(e.target.value)} /></label>
