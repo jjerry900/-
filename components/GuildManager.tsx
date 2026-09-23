@@ -70,7 +70,7 @@ export default function GuildManager() {
         </div>
         <nav>
           {menus.map(({ key, label, icon: Icon }) => (
-            <button key={key} className={`nav-item ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setSidebar(false); }}>
+            <button key={key} className={`nav-item ${active === key ? "active" : ""}`} onClick={() => { setActive(key); if (window.innerWidth <= 900) setSidebar(false); }}>
               <Icon size={19} /><span>{label}</span>
             </button>
           ))}
@@ -80,7 +80,7 @@ export default function GuildManager() {
 
       <main className="main">
         <header className="topbar">
-          <button className="icon-btn" onClick={() => setSidebar(!sidebar)}><Menu size={21} /></button>
+          <button className="icon-btn menu-toggle" onClick={() => setSidebar(!sidebar)}><Menu size={21} /></button>
           <div><div className="crumb">RAVEN2 / {title}</div><h1>{title}</h1></div>
           <button className="refresh" onClick={load} title="새로고침"><RefreshCw size={17} /></button>
         </header>
@@ -136,45 +136,84 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Member | null>(null);
   const [form, setForm] = useState({ name: "", job: "", power: "", defense: "", accuracy: "" });
-  const list = data.members.filter(m => `${m.name} ${m.job}`.toLowerCase().includes(q.toLowerCase()));
+  const [saving, setSaving] = useState(false);
+  const list = data.members.filter(m => `${m.name} ${m.job}`.toLowerCase().includes(q.trim().toLowerCase()));
   const reset = () => { setEditing(null); setForm({ name: "", job: "", power: "", defense: "", accuracy: "" }); };
+  const startEdit = (m: Member) => {
+    setEditing(m);
+    setForm({ name: m.name, job: m.job || "", power: String(m.power), defense: String(m.defense), accuracy: String(m.accuracy) });
+  };
 
   const save = async () => {
     if (!form.name.trim()) return window.alert("닉네임을 입력해주세요.");
     if (!editing && !requireAdmin()) return;
+    setSaving(true);
     const row = { name: form.name.trim(), job: form.job.trim(), power: Number(form.power) || 0, defense: Number(form.defense) || 0, accuracy: Number(form.accuracy) || 0 };
-    const result = editing ? await supabase.from("members").update(row).eq("id", editing.id) : await supabase.from("members").insert(row);
-    if (result.error) return window.alert(result.error.message);
-    reset();
-    const { data: members } = await supabase.from("members").select("*").order("name");
+    const result = editing
+      ? await supabase.from("members").update(row).eq("id", editing.id).select().single()
+      : await supabase.from("members").insert(row).select().single();
+    if (result.error) {
+      setSaving(false);
+      return window.alert(`저장 실패: ${result.error.message}`);
+    }
+    const { data: members, error } = await supabase.from("members").select("*").order("name");
+    setSaving(false);
+    if (error) return window.alert(`목록 새로고침 실패: ${error.message}`);
     setData(d => ({ ...d, members: (members || []) as Member[] }));
+    reset();
   };
 
   const del = async (id: string) => {
     if (!requireAdmin()) return;
     if (!window.confirm("이 길드원을 삭제할까요?")) return;
     const { error } = await supabase.from("members").delete().eq("id", id);
-    if (error) return window.alert(error.message);
+    if (error) return window.alert(`삭제 실패: ${error.message}`);
     setData(d => ({ ...d, members: d.members.filter(m => m.id !== id) }));
   };
 
   return <div className="stack">
-    <PageIntro title="👥 길드원 목록" desc="길드원 정보 수정은 누구나 가능하며, 등록과 삭제는 관리자 비밀번호가 필요합니다." />
-    <div className="panel"><div className="panel-title"><span>{editing ? "✏️ 길드원 수정" : "➕ 길드원 등록"}</span>{!editing && <Lock size={16} />}</div>
-      <div className="form-grid">
-        <input placeholder="닉네임" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="직업" value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} />
-        <input type="number" placeholder="공격력" value={form.power} onChange={e => setForm({ ...form, power: e.target.value })} />
-        <input type="number" placeholder="방어력" value={form.defense} onChange={e => setForm({ ...form, defense: e.target.value })} />
-        <input type="number" placeholder="명중" value={form.accuracy} onChange={e => setForm({ ...form, accuracy: e.target.value })} />
-        <div className="form-actions"><button className="primary" onClick={save}><Plus size={16} />{editing ? "수정 저장" : "등록"}</button>{editing && <button className="secondary" onClick={reset}>취소</button>}</div>
-      </div>
+    <PageIntro title="👥 길드원 목록" desc="길드원 정보를 한눈에 확인하고 검색할 수 있습니다." />
+    <div className="members-toolbar">
+      <div className="search member-search"><Search size={17} /><input placeholder="닉네임 또는 직업 검색" value={q} onChange={e => setQ(e.target.value)} /></div>
+      <span className="muted">검색 결과 {list.length}명 / 전체 {data.members.length}명</span>
+      <button className="primary" onClick={() => { reset(); window.scrollTo({ top: 0, behavior: "smooth" }); }}><Plus size={16} /> 길드원 추가</button>
     </div>
-    <div className="toolbar"><div className="search"><Search size={17} /><input placeholder="닉네임 또는 직업 검색" value={q} onChange={e => setQ(e.target.value)} /></div><span className="muted">{list.length}명</span></div>
-    <div className="panel table-panel"><div className="table-wrap"><table><thead><tr><th>닉네임</th><th>직업</th><th>공격력</th><th>방어력</th><th>명중</th><th /></tr></thead><tbody>{list.map(m => <tr key={m.id}><td className="strong">{m.name}</td><td>{m.job || "-"}</td><td>{m.power.toLocaleString()}</td><td>{m.defense.toLocaleString()}</td><td>{m.accuracy.toLocaleString()}</td><td className="actions"><button onClick={() => { setEditing(m); setForm({ name: m.name, job: m.job, power: String(m.power), defense: String(m.defense), accuracy: String(m.accuracy) }); }}><Pencil size={15} /></button><button className="danger" onClick={() => del(m.id)}><Trash2 size={15} /></button></td></tr>)}</tbody></table></div>{!list.length && <Empty text="등록된 길드원이 없습니다." />}</div>
+    <div className="member-grid">
+      {list.map(m => <div className="member-card" key={m.id}>
+        <div className="member-card-head"><div><strong>{m.name}</strong><span>{m.job || "직업 미등록"}</span></div><div className="actions"><button title="수정" onClick={() => startEdit(m)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(m.id)}><Trash2 size={15} /></button></div></div>
+        <div className="member-stats">
+          <div><span>공격력</span><b>{m.power.toLocaleString()}</b></div>
+          <div><span>방어력</span><b>{m.defense.toLocaleString()}</b></div>
+          <div><span>명중</span><b>{m.accuracy.toLocaleString()}</b></div>
+        </div>
+      </div>)}
+    </div>
+    {!list.length && <div className="panel"><Empty text={q ? "검색 결과가 없습니다." : "등록된 길드원이 없습니다."} /></div>}
+
+    {editing && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) reset(); }}>
+      <div className="member-edit-modal">
+        <div className="modal-head"><div><div className="eyebrow">RAVEN2 MEMBER</div><h3>✏️ 길드원 정보 수정</h3></div><button className="icon-btn" onClick={reset}><X size={20} /></button></div>
+        <div className="edit-grid">
+          <label>닉네임<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+          <label>직업<input value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} /></label>
+          <label>공격력<input type="number" value={form.power} onChange={e => setForm({ ...form, power: e.target.value })} /></label>
+          <label>방어력<input type="number" value={form.defense} onChange={e => setForm({ ...form, defense: e.target.value })} /></label>
+          <label>명중<input type="number" value={form.accuracy} onChange={e => setForm({ ...form, accuracy: e.target.value })} /></label>
+        </div>
+        <div className="modal-actions"><button className="secondary" onClick={reset}>취소</button><button className="primary" disabled={saving} onClick={save}>{saving ? "저장 중..." : "수정 저장"}</button></div>
+      </div>
+    </div>}
+
+    {!editing && <div className="panel add-member-panel"><div className="panel-title"><span>➕ 길드원 등록</span><Lock size={16} /></div><div className="form-grid member-add-grid">
+      <input placeholder="닉네임" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+      <input placeholder="직업" value={form.job} onChange={e => setForm({ ...form, job: e.target.value })} />
+      <input type="number" placeholder="공격력" value={form.power} onChange={e => setForm({ ...form, power: e.target.value })} />
+      <input type="number" placeholder="방어력" value={form.defense} onChange={e => setForm({ ...form, defense: e.target.value })} />
+      <input type="number" placeholder="명중" value={form.accuracy} onChange={e => setForm({ ...form, accuracy: e.target.value })} />
+      <button className="primary" disabled={saving} onClick={save}><Plus size={16} /> {saving ? "등록 중..." : "등록"}</button>
+    </div></div>}
   </div>;
 }
-
 function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
   const [week, setWeek] = useState("1");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
