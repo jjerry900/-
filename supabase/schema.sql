@@ -49,3 +49,25 @@ create index if not exists boss_records_week_idx on public.boss_records(week);
 
 alter publication supabase_realtime add table public.members;
 alter publication supabase_realtime add table public.boss_records;
+
+
+-- 길드원 삭제 시 기존 보스 참여 기록에서도 해당 길드원을 자동으로 제거합니다.
+create or replace function public.remove_deleted_member_from_boss_records()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.boss_records
+  set participants = array_remove(participants, old.name)
+  where old.name = any(participants);
+  return old;
+end;
+$$;
+
+drop trigger if exists trg_remove_deleted_member_from_boss_records on public.members;
+create trigger trg_remove_deleted_member_from_boss_records
+after delete on public.members
+for each row
+execute function public.remove_deleted_member_from_boss_records();

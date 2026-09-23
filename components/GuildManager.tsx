@@ -165,10 +165,33 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 
   const del = async (id: string) => {
     if (!requireAdmin()) return;
-    if (!window.confirm("이 길드원을 삭제할까요?")) return;
+    const member = data.members.find(m => m.id === id);
+    if (!member) return;
+    if (!window.confirm(`\"${member.name}\" 길드원을 삭제할까요?\n\n기존 보스 참여 기록에서도 이 길드원의 출석이 함께 삭제됩니다.`)) return;
+
+    // 길드원 삭제 전에 해당 길드원의 이름을 모든 보스 참여 기록에서 제거합니다.
+    // 참여자 목록이 text[]로 저장되어 있기 때문에 기존 기록도 함께 정리해야 합니다.
+    const affectedRecords = data.records.filter(r => (r.participants || []).includes(member.name));
+    for (const record of affectedRecords) {
+      const nextParticipants = (record.participants || []).filter(name => name !== member.name);
+      const { error: recordError } = await supabase
+        .from("boss_records")
+        .update({ participants: nextParticipants })
+        .eq("id", record.id);
+      if (recordError) {
+        return window.alert(`출석 기록 정리 실패: ${recordError.message}\n\n길드원은 아직 삭제되지 않았습니다.`);
+      }
+    }
+
     const { error } = await supabase.from("members").delete().eq("id", id);
     if (error) return window.alert(`삭제 실패: ${error.message}`);
-    setData(d => ({ ...d, members: d.members.filter(m => m.id !== id) }));
+
+    setData(d => ({
+      members: d.members.filter(m => m.id !== id),
+      records: d.records.map(r => affectedRecords.some(a => a.id === r.id)
+        ? { ...r, participants: (r.participants || []).filter(name => name !== member.name) }
+        : r)
+    }));
   };
 
   return <div className="stack">
