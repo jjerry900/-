@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Users, Swords, CalendarDays, Dices, Menu, X, Plus, Trash2, Search, Pencil, Shield, Target, RefreshCw, Lock } from "lucide-react";
+import { LayoutDashboard, Users, Swords, CalendarDays, Dices, Menu, X, Plus, Trash2, Search, Pencil, Shield, Target, RefreshCw, Lock, ArrowUpDown } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 type Member = { id: string; name: string; job: string; power: number; defense: number; accuracy: number };
@@ -137,7 +137,15 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
   const [editing, setEditing] = useState<Member | null>(null);
   const [form, setForm] = useState({ name: "", job: "", power: "", defense: "", accuracy: "" });
   const [saving, setSaving] = useState(false);
-  const list = data.members.filter(m => `${m.name} ${m.job}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const [sortBy, setSortBy] = useState<"name" | "job" | "power">("power");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const filtered = data.members.filter(m => `${m.name} ${m.job}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const list = [...filtered].sort((a, b) => {
+    let result = 0;
+    if (sortBy === "name" || sortBy === "job") result = String(a[sortBy] || "").localeCompare(String(b[sortBy] || ""), "ko");
+    else result = Number(a[sortBy]) - Number(b[sortBy]);
+    return sortDir === "asc" ? result : -result;
+  });
   const reset = () => { setEditing(null); setForm({ name: "", job: "", power: "", defense: "", accuracy: "" }); };
   const startEdit = (m: Member) => {
     setEditing(m);
@@ -211,6 +219,17 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
 
     <div className="members-toolbar">
       <div className="search member-search"><Search size={17} /><input placeholder="닉네임 또는 직업 검색" value={q} onChange={e => setQ(e.target.value)} /></div>
+      <div className="sort-control">
+        <ArrowUpDown size={15} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)} aria-label="길드원 정렬 기준">
+          <option value="power">전체 투력</option>
+          <option value="name">닉네임</option>
+          <option value="job">직업</option>
+        </select>
+        <button className="sort-dir" onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? "내림차순으로 변경" : "오름차순으로 변경"}>
+          {sortDir === "asc" ? "오름차순" : "내림차순"}
+        </button>
+      </div>
       <span className="muted">검색 결과 {list.length}명 / 전체 {data.members.length}명</span>
     </div>
 
@@ -255,6 +274,14 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
   const [selected, setSelected] = useState<string[]>([]);
   const [editing, setEditing] = useState<BossRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  const [sortBy, setSortBy] = useState<"date" | "boss" | "score">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const sortedRecords = [...data.records].sort((a, b) => {
+    let result = 0;
+    if (sortBy === "date" || sortBy === "boss") result = String(a[sortBy] || "").localeCompare(String(b[sortBy] || ""), "ko");
+    else result = Number(a.score) - Number(b.score);
+    return sortDir === "asc" ? result : -result;
+  });
 
   const resetEdit = () => {
     setEditing(null);
@@ -331,8 +358,22 @@ function BossRecords({ data, setData }: { data: AppData; setData: React.Dispatch
     </div>
 
     <div className="panel table-panel">
+      <div className="panel-title">
+        <span>📋 전체 참여 기록</span>
+        <div className="sort-control">
+          <ArrowUpDown size={15} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)} aria-label="보스 기록 정렬 기준">
+            <option value="date">날짜</option>
+            <option value="boss">보스 이름</option>
+            <option value="score">점수</option>
+          </select>
+          <button className="sort-dir" onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? "내림차순으로 변경" : "오름차순으로 변경"}>
+            {sortDir === "asc" ? "오름차순" : "내림차순"}
+          </button>
+        </div>
+      </div>
       <div className="table-wrap"><table className="boss-table"><thead><tr><th>날짜</th><th>보스</th><th>점수</th><th>참여자</th><th>관리</th></tr></thead>
-        <tbody>{data.records.map(r => <tr key={r.id}>
+        <tbody>{sortedRecords.map(r => <tr key={r.id}>
           <td>{r.date}</td><td className="strong">{r.boss}</td><td>{r.score.toLocaleString()}</td><td>{r.participants.length ? r.participants.join(", ") : "-"}</td>
           <td><div className="actions"><button title="수정" onClick={() => startEdit(r)}><Pencil size={15} /></button><button title="삭제" className="danger" onClick={() => del(r.id)}><Trash2 size={15} /></button></div></td>
         </tr>)}</tbody>

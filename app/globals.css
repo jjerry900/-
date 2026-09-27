@@ -137,3 +137,11 @@
 
 .panel-actions{display:flex;align-items:center;gap:8px}.danger-outline{border:1px solid #e7b4b8;background:#fff7f7;color:#c8535d}.danger-outline:hover{background:#ffeded}
 @media(max-width:560px){.panel-actions{gap:6px}.danger-outline.small{font-size:11px;padding:0 8px}.boss-table{min-width:0}.boss-table th,.boss-table td{padding:10px 7px;font-size:11px}.boss-table th:nth-child(4),.boss-table td:nth-child(4){white-space:normal;min-width:110px}.boss-table th:nth-child(5),.boss-table td:nth-child(5){width:60px}}
+
+/* Sorting controls */
+.sort-control{display:flex;align-items:center;gap:7px;background:#fafafd;border:1px solid #e7e6ef;border-radius:10px;padding:4px 6px;color:#777;min-height:38px}
+.sort-control select{border:0;background:transparent;outline:0;color:#555;font-size:12px;font-weight:600;cursor:pointer;padding:0 2px}
+.sort-dir{border:0;background:#fff;border:1px solid #e5e3ed;color:#777;border-radius:7px;padding:6px 9px;font-size:11px;cursor:pointer;white-space:nowrap}
+.sort-dir:hover{background:#f3f1fb;color:#6653be}
+.members-toolbar .sort-control{margin-left:auto}
+@media(max-width:560px){.members-toolbar .sort-control{margin-left:0;width:100%;justify-content:space-between}.members-toolbar .sort-control select{flex:1}.panel-title .sort-control{width:auto;max-width:100%;flex-wrap:wrap}.panel-title .sort-control select{max-width:95px}.sort-dir{padding:6px 7px}}
