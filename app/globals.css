@@ -15,6 +15,10 @@
 .member-stats div{background:#fafafd;border-radius:10px;padding:10px 8px;text-align:center;min-width:0}
 .member-stats span{display:block;color:#8c8c98;font-size:10px;margin-bottom:5px}
 .member-stats b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis}
+
+.member-total-power{margin-top:8px;background:#f3f0ff;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.member-total-power span{color:#6f64a0;font-size:11px;font-weight:700}
+.member-total-power b{font-size:15px;color:#4f4580}
 .add-member-panel{margin-top:2px}
 .member-add-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 .member-add-grid .primary{height:42px}

@@ -5,6 +5,7 @@ import { LayoutDashboard, Users, Swords, CalendarDays, Dices, Menu, X, Plus, Tra
 import { supabase } from "../lib/supabase";
 
 type Member = { id: string; name: string; job: string; power: number; defense: number; accuracy: number };
+const getTotalPower = (m: Member) => Number(m.power || 0) + Number(m.defense || 0) + Number(m.accuracy || 0);
 type BossRecord = { id: string; week: number; date: string; boss: string; score: number; participants: string[] };
 type AppData = { members: Member[]; records: BossRecord[] };
 
@@ -17,7 +18,7 @@ const menus = [
 ] as const;
 type MenuKey = typeof menus[number]["key"];
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "CHANGE_ME";
+const ADMIN_PASSWORD = "7979";
 
 function requireAdmin(): boolean {
   const password = window.prompt("관리자 비밀번호를 입력해주세요.");
@@ -143,7 +144,7 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
   const list = [...filtered].sort((a, b) => {
     let result = 0;
     if (sortBy === "name" || sortBy === "job") result = String(a[sortBy] || "").localeCompare(String(b[sortBy] || ""), "ko");
-    else result = Number(a[sortBy]) - Number(b[sortBy]);
+    else result = getTotalPower(a) - getTotalPower(b);
     return sortDir === "asc" ? result : -result;
   });
   const reset = () => { setEditing(null); setForm({ name: "", job: "", power: "", defense: "", accuracy: "" }); };
@@ -247,6 +248,7 @@ function Members({ data, setData }: { data: AppData; setData: React.Dispatch<Rea
           <div><span>방어력</span><b>{m.defense.toLocaleString()}</b></div>
           <div><span>명중</span><b>{m.accuracy.toLocaleString()}</b></div>
         </div>
+        <div className="member-total-power"><span>3대 합</span><b>{getTotalPower(m).toLocaleString()}</b></div>
       </div>)}
     </div>
     {!list.length && <div className="panel"><Empty text={q ? "검색 결과가 없습니다." : "등록된 길드원이 없습니다."} /></div>}
